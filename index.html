@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr" x-data="pharmacyApp()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacie Hani | Boutique Officielle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Inter', sans-serif; background-color: #0d0f0d; color: #e2e2e2; scroll-behavior: smooth; }
+        .serif { font-family: 'Cormorant Garamond', serif; }
+        .bg-sage { background-color: #6a8a73; }
+        .text-sage { color: #8ba88e; }
+        
+        /* Smooth Cart Animation */
+        .cart-drawer { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        /* Product Card Hover Effects */
+        .product-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .product-card:hover { transform: translateY(-12px); border-color: #6a8a73; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .product-card:active { transform: scale(0.95); }
+        
+        /* Pulse Animation for Cart */
+        @keyframes cartPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #8ba88e; }
+            100% { transform: scale(1); }
+        }
+        .animate-cart { animation: cartPulse 0.4s ease-out; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- SHOPPING CART DRAWER -->
+    <div x-cloak>
+        <!-- Overlay -->
+        <div x-show="cartOpen" 
+             x-transition:enter="transition opacity-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition opacity-out duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="cartOpen = false" 
+             class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60]"></div>
+        
+        <!-- Drawer Body -->
+        <div :class="cartOpen ? 'translate-x-0' : 'translate-x-full'" 
+             class="fixed right-0 top-0 h-full w-full max-w-md bg-[#111311] z-[70] shadow-2xl cart-drawer border-l border-white/10 p-8 flex flex-col">
+            
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="serif text-3xl">Votre Panier</h2>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest mt-1" x-text="cartCount() + ' articles sélectionnés'"></p>
+                </div>
+                <button @click="cartOpen = false" class="p-3 hover:bg-white/5 rounded-full transition"><i data-lucide="x"></i></button>
+            </div>
+
+            <!-- Scrollable Cart Items -->
+            <div class="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                <template x-if="cart.length === 0">
+                    <div class="text-center py-20 opacity-20">
+                        <i data-lucide="shopping-bag" class="w-16 h-16 mx-auto mb-4"></i>
+                        <p class="serif text-xl">Le panier est vide</p>
+                    </div>
+                </template>
+
+                <template x-for="item in cart" :key="item.id">
+                    <div class="flex gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 items-center">
+                        <div class="w-20 h-20 bg-[#1a1d1a] rounded-xl flex items-center justify-center font-bold text-sage border border-white/5" x-text="item.name[0]"></div>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-sm leading-tight" x-text="item.name"></h4>
+                            <p class="text-xs text-sage mt-1 font-bold" x-text="item.price + ' DZD'"></p>
+                            
+                            <div class="flex items-center gap-4 mt-3">
+                                <div class="flex items-center bg-black/40 rounded-lg border border-white/5">
+                                    <button @click="updateQty(item.id, -1)" class="px-3 py-1 hover:text-sage transition">-</button>
+                                    <span class="text-xs font-bold w-4 text-center" x-text="item.qty"></span>
+                                    <button @click="updateQty(item.id, 1)" class="px-3 py-1 hover:text-sage transition">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="removeFromCart(item.id)" class="p-2 text-gray-600 hover:text-red-400 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Checkout Section -->
+            <div class="mt-8 pt-8 border-t border-white/10">
+                <div class="flex justify-between items-end mb-8">
+                    <span class="text-gray-500 text-sm uppercase tracking-widest">Sous-total</span>
+                    <span class="text-3xl serif text-sage" x-text="cartTotal() + ' DZD'"></span>
+                </div>
+                <button @click="checkoutWhatsApp()" 
+                        class="w-full bg-sage text-black font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#7ba385] transition-all transform active:scale-95 disabled:opacity-30 disabled:grayscale" 
+                        :disabled="cart.length === 0">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i>
+                    Commander via WhatsApp
+                </button>
+                <p class="text-[10px] text-center text-gray-600 mt-4 uppercase tracking-widest">Livraison rapide dans les 58 wilayas</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <header class="sticky top-0 z-50 bg-[#0d0f0d]/80 backdrop-blur-xl border-b border-white/5 px-6 md:px-10 py-5 flex justify-between items-center">
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+            <div class="w-12 h-12 bg-sage rounded-full flex items-center justify-center font-bold text-black shadow-[0_0_30px_rgba(106,138,115,0.2)] group-hover:scale-110 transition">H</div>
+            <div>
+                <h1 class="serif text-2xl font-bold leading-none">Pharmacie Hani</h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mt-1">Mahalma · Alger</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <a href="https://maps.app.goo.gl/WvcfSCeRZLUvvcLz8" target="_blank" class="hidden md:flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-sage transition mr-6">
+                <i data-lucide="map-pin" class="w-4 h-4"></i> Localisation
+            </a>
+            
+            <!-- Cart Trigger -->
+            <button @click="cartOpen = true" 
+                    class="relative p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition group"
+                    :class="cartAnimate ? 'animate-cart' : ''">
+                <i data-lucide="shopping-bag" class="w-6 h-6 group-hover:text-sage transition"></i>
+                <template x-if="cartCount() > 0">
+                    <span x-text="cartCount()" class="absolute -top-1 -right-1 bg-white text-black text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full shadow-xl"></span>
+                </template>
+            </button>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="px-6 md:px-20 py-24 flex flex-col items-center text-center">
+        <div class="max-w-4xl">
+            <h2 class="serif text-7xl md:text-[120px] leading-[0.85] mb-10 tracking-tighter">
+                La beauté par <br> <span class="text-sage italic">l'expertise.</span>
+            </h2>
+            <p class="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-12">
+                Votre destination parapharmacie premium à Mahalma. Cliquez sur n'importe quel produit pour l'ajouter à votre sélection.
+            </p>
+            <div class="flex justify-center gap-4">
+                <a href="#catalogue" class="bg-white text-black font-bold px-10 py-5 rounded-2xl hover:bg-sage transition-colors">Explorer le catalogue</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCT CATALOGUE -->
+    <section id="catalogue" class="px-6 md:px-20 py-20">
+        <div class="flex items-center gap-4 mb-16">
+            <span class="h-px bg-white/10 flex-1"></span>
+            <h2 class="serif text-4xl">Nos Produits</h2>
+            <span class="h-px bg-white/10 flex-1"></span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <template x-for="product in products" :key="product.id">
+                <!-- CLICKABLE PRODUCT CARD -->
+                <div @click="addToCart(product)" class="product-card bg-[#111311] rounded-[2.5rem] p-5 border border-white/5 flex flex-col group">
+                    <div class="relative aspect-square bg-[#1a1d1a] rounded-[2rem] overflow-hidden flex items-center justify-center mb-8">
+                        <i data-lucide="package" class="w-16 h-16 text-white/5 group-hover:scale-110 transition duration-700"></i>
+                        
+                        <!-- Hover Overlay -->
+                        <div class="absolute inset-0 bg-sage/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="bg-black text-white text-xs font-bold px-6 py-3 rounded-xl transform translate-y-4 group-hover:translate-y-0 transition">Ajouter au panier</span>
+                        </div>
+                        
+                        <template x-if="product.featured">
+                            <span class="absolute top-5 left-5 bg-white text-black text-[9px] font-black uppercase px-3 py-1.5 rounded-full">Top Vente</span>
+                        </template>
+                    </div>
+
+                    <div class="px-2 flex-1 flex flex-col">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-[10px] text-sage font-black uppercase tracking-[0.2em]" x-text="product.brand"></p>
+                        </div>
+                        <h3 class="serif text-2xl mb-6 group-hover:text-sage transition" x-text="product.name"></h3>
+                        
+                        <div class="mt-auto flex justify-between items-center">
+                            <span class="text-xl font-bold" x-text="product.price + ' DZD'"></span>
+                            <div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-black transition">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- FOOTER MAPS -->
+    <section class="px-6 md:px-20 py-24 border-t border-white/5 bg-[#0a0a0a]">
+        <div class="flex flex-col md:flex-row gap-20 items-center">
+            <div class="flex-1">
+                <h2 class="serif text-5xl mb-8">Nous sommes là pour vous.</h2>
+                <div class="space-y-6">
+                    <a href="https://maps.app.goo.gl/WvcfSCeRZLUvvcLz8" target="_blank" class="flex items-center gap-4 group">
+                        <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-sage group-hover:text-black transition"><i data-lucide="map-pin"></i></div>
+                        <div>
+                            <p class="font-bold">Mahalma Center</p>
+                            <p class="text-sm text-gray-500">Cliquez pour voir l'itinéraire</p>
+                        </div>
+                    </a>
+                    <a href="https://wa.me/213791875404" class="flex items-center gap-4 group">
+                        <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-green-500 group-hover:text-white transition"><i data-lucide="message-circle"></i></div>
+                        <div>
+                            <p class="font-bold">0791 87 54 04</p>
+                            <p class="text-sm text-gray-500">Service client 7j/7</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="w-full md:w-1/2 h-80 rounded-[3rem] overflow-hidden grayscale contrast-125 border border-white/10 opacity-50 hover:opacity-100 transition duration-700">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1600.8!2d2.8!3d36.7!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzbCsDQyJzAwLjAiTiAywrA0OCcwMC4wIkU!5e0!3m2!1sfr!2sdz!4v1700000000000" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        function pharmacyApp() {
+            return {
+                cartOpen: false,
+                cartAnimate: false,
+                cart: [],
+                products: [
+                    { id: 1, name: "Sérum Éclat Vitamine C", brand: "La Roche-Posay", price: 6500, featured: true },
+                    { id: 2, name: "Hydrabio Crème Riche", brand: "Bioderma", price: 3200, featured: false },
+                    { id: 3, name: "Shampooing Dercos", brand: "Vichy", price: 2800, featured: true },
+                    { id: 4, name: "Anthelios XL 50+ Spray", brand: "La Roche-Posay", price: 3400, featured: false },
+                    { id: 5, name: "Eau Thermale 300ml", brand: "Avène", price: 1900, featured: false },
+                    { id: 6, name: "Baume Lipikar AP+", brand: "La Roche-Posay", price: 4200, featured: true },
+                    { id: 7, name: "Gel Nettoyant Effaclar", brand: "La Roche-Posay", price: 2600, featured: false },
+                    { id: 8, name: "Soin Regard Hydrabio", brand: "Bioderma", price: 2450, featured: false },
+                ],
+                addToCart(product) {
+                    const existing = this.cart.find(i => i.id === product.id);
+                    if (existing) {
+                        existing.qty++;
+                    } else {
+                        this.cart.push({ ...product, qty: 1 });
+                    }
+                    
+                    // Trigger animations and open drawer
+                    this.cartAnimate = true;
+                    setTimeout(() => this.cartAnimate = false, 400);
+                    this.cartOpen = true;
+                    
+                    // Re-init icons for new items in drawer
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+                removeFromCart(id) {
+                    this.cart = this.cart.filter(i => i.id !== id);
+                },
+                updateQty(id, delta) {
+                    const item = this.cart.find(i => i.id === id);
+                    if (item) {
+                        item.qty += delta;
+                        if (item.qty <= 0) this.removeFromCart(id);
+                    }
+                },
+                cartCount() {
+                    return this.cart.reduce((sum, i) => sum + i.qty, 0);
+                },
+                cartTotal() {
+                    return this.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+                },
+                checkoutWhatsApp() {
+                    let message = "*COMMANDE PHARMACIE HANI*\n\n";
+                    this.cart.forEach(item => {
+                        message += `• ${item.name} (${item.brand}) \n  Quantité: x${item.qty} | Prix: ${item.price * item.qty} DZD\n\n`;
+                    });
+                    message += `*TOTAL À PAYER: ${this.cartTotal()} DZD*\n\n_Veuillez confirmer ma commande s'il vous plaît._`;
+                    
+                    const encodedMessage = encodeURIComponent(message);
+                    window.open(`https://wa.me/213791875404?text=${encodedMessage}`, '_blank');
+                }
+            }
+        }
+        
+        lucide.createIcons();
+    </script>
+</body>
+</html>
