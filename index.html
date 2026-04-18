@@ -99,9 +99,17 @@
 
             <!-- Checkout Section -->
             <div class="mt-8 pt-8 border-t border-white/10">
-                <div class="flex justify-between items-end mb-8">
+                <div class="flex justify-between items-end mb-4">
                     <span class="text-gray-500 text-sm uppercase tracking-widest">Sous-total</span>
-                    <span class="text-3xl serif text-sage" x-text="cartTotal() + ' DZD'"></span>
+                    <span class="text-xl serif text-white" x-text="cartTotal() + ' DZD'"></span>
+                </div>
+                <div class="flex justify-between items-end mb-8">
+                    <span class="text-gray-500 text-sm uppercase tracking-widest" x-text="deliveryFee() === 0 ? 'Livraison gratuite' : 'Livraison'"></span>
+                    <span class="text-xl serif" :class="deliveryFee() === 0 ? 'text-green-400' : 'text-white'" x-text="deliveryFee() === 0 ? 'GRATUIT' : deliveryFee() + ' DZD'"></span>
+                </div>
+                <div class="flex justify-between items-end mb-8">
+                    <span class="text-gray-500 text-sm uppercase tracking-widest">Total</span>
+                    <span class="text-3xl serif text-sage" x-text="totalWithDelivery() + ' DZD'"></span>
                 </div>
                 <button @click="checkoutWhatsApp()" 
                         class="w-full bg-sage text-black font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#7ba385] transition-all transform active:scale-95 disabled:opacity-30 disabled:grayscale" 
@@ -109,6 +117,13 @@
                     <i data-lucide="message-circle" class="w-5 h-5"></i>
                     Commander via WhatsApp
                 </button>
+                <div class="mt-6 rounded-[1.5rem] bg-[#112211] border border-sage/30 p-4 text-center">
+                    <p class="text-sm uppercase tracking-[0.25em] text-sage mb-2">Livraison</p>
+                    <p class="text-base font-semibold text-white" x-text="deliveryFee() === 0 ? 'Livraison gratuite appliquée' : 'Livraison gratuite à partir de 9000 DZD' "></p>
+                    <template x-if="deliveryFee() > 0">
+                        <p class="text-xs text-gray-400 mt-2">Ajoutez encore <span class="text-white font-bold" x-text="9000 - cartTotal() + ' DZD'"></span> pour la livraison offerte.</p>
+                    </template>
+                </div>
                 <p class="text-[10px] text-center text-gray-600 mt-4 uppercase tracking-widest">Livraison rapide dans les 58 wilayas</p>
             </div>
         </div>
@@ -156,9 +171,14 @@
             <h2 class="serif text-7xl md:text-[120px] leading-[0.85] mb-10 tracking-tighter">
                 La beauté par <br> <span class="text-sage italic">l'expertise.</span>
             </h2>
-            <p class="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-12">
+            <p class="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-8">
                 Votre destination parapharmacie premium à Mahelma. Cliquez sur n'importe quel produit pour l'ajouter à votre sélection.
             </p>
+            <div class="mx-auto max-w-2xl rounded-[2rem] border border-sage/30 bg-[#112211] p-6 mb-10 text-center shadow-[0_20px_80px_rgba(106,138,115,0.18)]">
+                <p class="text-sm uppercase tracking-[0.25em] text-sage mb-2">Offre spéciale livraison</p>
+                <h3 class="text-2xl md:text-3xl font-semibold text-white">Livraison gratuite dès 9000 DZD d'achat</h3>
+                <p class="text-sm md:text-base text-gray-300 mt-3">Ajoutez encore quelques produits à votre panier pour bénéficier de la livraison offerte.</p>
+            </div>
             <div class="flex justify-center gap-4">
                 <a href="#catalogue" class="bg-white text-black font-bold px-10 py-5 rounded-2xl hover:bg-sage transition-colors">Explorer le catalogue</a>
             </div>
@@ -466,12 +486,20 @@
                 cartTotal() {
                     return this.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
                 },
+                deliveryFee() {
+                    return this.cartTotal() >= 9000 ? 0 : 500;
+                },
+                totalWithDelivery() {
+                    return this.cartTotal() + this.deliveryFee();
+                },
                 checkoutWhatsApp() {
                     let message = "*COMMANDE PHARMACIE HANI*\n\n";
                     this.cart.forEach(item => {
                         message += `• ${item.name} (${item.brand}) \n  Quantité: x${item.qty} | Prix: ${item.price * item.qty} DZD\n\n`;
                     });
-                    message += `*TOTAL À PAYER: ${this.cartTotal()} DZD*\n\n_Veuillez confirmer ma commande s'il vous plaît._`;
+                    message += `*Sous-total: ${this.cartTotal()} DZD*\n`;
+                    message += `*Livraison: ${this.deliveryFee() === 0 ? 'GRATUIT' : this.deliveryFee() + ' DZD'}*\n`;
+                    message += `*TOTAL À PAYER: ${this.totalWithDelivery()} DZD*\n\n_Veuillez confirmer ma commande s'il vous plaît._`;
                     
                     const encodedMessage = encodeURIComponent(message);
                     window.open(`https://wa.me/213791875404?text=${encodedMessage}`, '_blank');
